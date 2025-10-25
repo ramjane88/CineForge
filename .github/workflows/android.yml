@@ -1,10 +1,7 @@
-
 name: Android CI (Assemble Debug)
 
 on:
   push:
-    branches: [ main, master ]
-  pull_request:
     branches: [ main, master ]
   workflow_dispatch:
 
@@ -18,15 +15,28 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
+          java-version: '17'
 
-      - name: Bootstrap Gradle Wrapper
-        run: ./ci-bootstrap-wrapper.sh
+      - name: Install Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: |
+            build-tools;34.0.0
+            platforms;android-34
+            platform-tools
 
-      - name: Build debug APK
+      # Create Gradle wrapper on the runner (so we don't need Java locally)
+      - name: Bootstrap Gradle wrapper
         uses: gradle/gradle-build-action@v2
         with:
-          arguments: :app:assembleDebug
+          gradle-version: 8.7
+          arguments: wrapper
+
+      - name: Make gradlew executable
+        run: chmod +x gradlew
+
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug --no-daemon
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
