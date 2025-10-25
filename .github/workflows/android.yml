@@ -1,18 +1,13 @@
-name: Android CI
+name: android-ci
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
-  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    env:
-      ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
-      ANDROID_HOME:     ${{ runner.temp }}/android-sdk
-
     steps:
       - uses: actions/checkout@v4
 
@@ -21,25 +16,17 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Install Android SDK
-        run: |
-          mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmd.zip
-          unzip -q cmd.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
-          mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
-          echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
+      - name: Install SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Ensure Gradle wrapper
-        run: gradle wrapper --gradle-version 8.7
-
-      - name: Grant wrapper execute
+      - name: Make gradlew executable
         run: chmod +x gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace --no-daemon
+      - name: Build
+        run: ./gradlew assembleDebug
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          name: app-debug
+          name: apk
           path: app/build/outputs/apk/debug/*.apk
