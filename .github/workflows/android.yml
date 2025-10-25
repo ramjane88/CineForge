@@ -1,8 +1,8 @@
-name: Android CI (Assemble Debug)
+name: Android CI
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -11,46 +11,35 @@ jobs:
 
     env:
       ANDROID_SDK_ROOT: ${{ runner.temp }}/android-sdk
-      ANDROID_HOME:     ${{ runner.temp }}/android-sdk   # <- match Sdk Root
+      ANDROID_HOME:     ${{ runner.temp }}/android-sdk
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
 
-      - name: Install Android SDK (manual)
+      - name: Install Android SDK
         run: |
-          set -e
           mkdir -p "$ANDROID_SDK_ROOT/cmdline-tools"
-          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdtools.zip
-          unzip -q cmdtools.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmd.zip
+          unzip -q cmd.zip -d "$ANDROID_SDK_ROOT/cmdline-tools"
           mv "$ANDROID_SDK_ROOT/cmdline-tools/cmdline-tools" "$ANDROID_SDK_ROOT/cmdline-tools/latest"
-          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" \
-              "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          yes | "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" --sdk_root="$ANDROID_SDK_ROOT" "platform-tools" "platforms;android-34" "build-tools;34.0.0"
           echo "$ANDROID_SDK_ROOT/platform-tools" >> $GITHUB_PATH
 
-      - name: Download Gradle 8.7 (no cache)
-        run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip -O gradle.zip
-          unzip -q gradle.zip -d $HOME/gradle
-          echo "$HOME/gradle/gradle-8.7/bin" >> $GITHUB_PATH
-
-      - name: Generate Gradle wrapper
+      - name: Ensure Gradle wrapper
         run: gradle wrapper --gradle-version 8.7
 
-      - name: Make gradlew executable
+      - name: Grant wrapper execute
         run: chmod +x gradlew
 
       - name: Build Debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace --no-daemon
+        run: ./gradlew assembleDebug --stacktrace --no-daemon
 
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: CineForge-debug-apk
+          name: app-debug
           path: app/build/outputs/apk/debug/*.apk
