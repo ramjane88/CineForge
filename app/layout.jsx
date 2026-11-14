@@ -2,7 +2,7 @@ import './globals.css';
 
 export const metadata = {
   title: 'CineForge',
-  description: 'Make your first AI film in 14 days. Lessons, a prompt studio, weekly challenges, a portfolio and a job agent.',
+  description: 'Turn an idea into a short film. Write the shot list, generate each clip with AI, and export one video.',
 };
 
 export const viewport = { width: 'device-width', initialScale: 1 };

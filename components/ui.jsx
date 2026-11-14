@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-
 export function Field({ label, value, onChange, type = 'text', ...rest }) {
   return (
     <label className="f">
@@ -11,26 +9,11 @@ export function Field({ label, value, onChange, type = 'text', ...rest }) {
   );
 }
 
-export function Area({ label, value, onChange, placeholder }) {
+export function Area({ label, value, onChange, placeholder, rows }) {
   return (
     <label className="f">
       {label}
-      <textarea value={value} placeholder={placeholder || ''} onChange={(e) => onChange(e.target.value)} />
-    </label>
-  );
-}
-
-export function Select({ label, value, onChange, options }) {
-  return (
-    <label className="f">
-      {label}
-      <select value={value} onChange={(e) => onChange(e.target.value)}>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
+      <textarea value={value} rows={rows} placeholder={placeholder || ''} onChange={(e) => onChange(e.target.value)} />
     </label>
   );
 }
@@ -45,38 +28,4 @@ export function Chips({ options, value, onChange }) {
       ))}
     </div>
   );
-}
-
-export function CopyButton({ text, label = 'Copy', className = 'btn ghost' }) {
-  const [ok, setOk] = useState(false);
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(text);
-      setOk(true);
-      setTimeout(() => setOk(false), 1200);
-    } catch (e) {}
-  }
-  return (
-    <button type="button" className={className} onClick={copy}>
-      {ok ? 'Copied' : label}
-    </button>
-  );
-}
-
-// Keyed AI calls so several boxes on a screen can run independently.
-export function useAI(s) {
-  const [ai, setAi] = useState({});
-  const [busy, setBusy] = useState({});
-  async function run(key, prompt) {
-    if (busy[key]) return;
-    setBusy((b) => ({ ...b, [key]: true }));
-    setAi((a) => ({ ...a, [key]: 'Thinking...' }));
-    const t = await s.ai(prompt);
-    setAi((a) => ({ ...a, [key]: t }));
-    setBusy((b) => ({ ...b, [key]: false }));
-  }
-  function say(key, t) {
-    setAi((a) => ({ ...a, [key]: t }));
-  }
-  return { ai, busy, run, say };
 }
