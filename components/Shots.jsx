@@ -114,7 +114,7 @@ export default function Shots({ p, go }) {
       const pr = live().project;
       const prompt = s.frame
         ? (s.motion || 'subtle natural motion') + '. ' + s.prompt
-        : [s.motion, s.prompt, pr.style].filter(Boolean).join('. ');
+        : [s.prompt, s.motion, pr.cast && 'Characters: ' + pr.cast.replace(/\n+/g, '; '), pr.style].filter(Boolean).join('. ');
       const args = { settings: st, prompt, frame: s.frame, aspect: pr.aspect, seconds: pr.seconds, onStatus: (t) => mark(id, 'Clip: ' + t) };
       const made = await run(id, hfVideo, falVideo, args);
       const clip = { id: uid(), url: made.url, engine: made.engine, at: Date.now() };
