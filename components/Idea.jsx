@@ -16,7 +16,7 @@ export default function Idea({ p, go }) {
     setBusy(true);
     setNote('Writing shots...');
     try {
-      const shots = await writeShots({ key: settings.groq, idea: project.idea, style: project.style, cast: project.cast, count: project.count, seconds: project.seconds });
+      const shots = await writeShots({ key: settings.groq, claude: settings.claude, idea: project.idea, style: project.style, cast: project.cast, count: project.count, seconds: project.seconds });
       update((d) => { shots.forEach((s) => d.shots.push(newShot(s))); });
       setNote('');
       go('shots');
@@ -52,7 +52,7 @@ export default function Idea({ p, go }) {
           <button type="button" className="btn sec" onClick={blank}>Add a blank shot</button>
         </div>
         {note && <p className={busy ? 'busy' : 'err'}>{note}</p>}
-        {!settings.groq && <p className="note">The shot writer needs a Groq key. Add it in Keys, or write shots by hand.</p>}
+        {!settings.groq && !settings.claude && <p className="note">The shot writer needs a Claude or Groq key. Add one in Keys, or write shots by hand.</p>}
       </div>
     </section>
   );

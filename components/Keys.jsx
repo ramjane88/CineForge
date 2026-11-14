@@ -30,8 +30,11 @@ export default function Keys({ p }) {
 
       <div className="card">
         <h3>Shot writer</h3>
-        <p className="note">Turns your idea into a shot list using Groq. Create a key at <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">console.groq.com/keys</a>.</p>
+        <p className="note">Turns your idea into a shot list. Use Claude or Groq. If both are set, Claude is used. Claude writes text only. It cannot generate video, so clips always come from the video engines above.</p>
+        <Field label="Claude API key" type="password" value={settings.claude} onChange={set('claude')} placeholder="sk-ant-..." autoComplete="off" />
+        <p className="note">From <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener noreferrer">console.anthropic.com</a>. This is billed per use and is separate from a Claude app subscription.</p>
         <Field label="Groq key" type="password" value={settings.groq} onChange={set('groq')} placeholder="gsk_..." autoComplete="off" />
+        <p className="note">From <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer">console.groq.com/keys</a>.</p>
       </div>
 
       <div className="card">
