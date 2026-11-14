@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { newShot, pickedClip, uid } from '../lib/project';
 import { falImage, falVideo, hfImage, hfVideo, toFrame } from '../lib/engines';
-import { dedupe, newOnly, parseScript } from '../lib/script';
+import { castFor, dedupe, newOnly, parseScript } from '../lib/script';
 import { Area, Chips, Field } from './ui';
 
 export default function Shots({ p, go }) {
@@ -56,7 +56,8 @@ export default function Shots({ p, go }) {
   // Still prompt: style and cast lead so every frame shares a look.
   function framePrompt(s) {
     const pr = live().project;
-    return [s.prompt, pr.cast && 'Characters: ' + pr.cast.replace(/\n+/g, '; '), pr.style].filter(Boolean).join('. ');
+    const who = castFor(pr.cast, s.prompt);
+    return [s.prompt, who && 'Characters: ' + who, pr.style].filter(Boolean).join('. ');
   }
 
   // Each maker reports 'ok', 'quota' or 'fail' so a batch run knows when to stop.
@@ -114,7 +115,7 @@ export default function Shots({ p, go }) {
       const pr = live().project;
       const prompt = s.frame
         ? (s.motion || 'subtle natural motion') + '. ' + s.prompt
-        : [s.prompt, s.motion, pr.cast && 'Characters: ' + pr.cast.replace(/\n+/g, '; '), pr.style].filter(Boolean).join('. ');
+        : [s.prompt, s.motion, castFor(pr.cast, s.prompt) && 'Characters: ' + castFor(pr.cast, s.prompt), pr.style].filter(Boolean).join('. ');
       const args = { settings: st, prompt, frame: s.frame, aspect: pr.aspect, seconds: pr.seconds, onStatus: (t) => mark(id, 'Clip: ' + t) };
       const made = await run(id, hfVideo, falVideo, args);
       const clip = { id: uid(), url: made.url, engine: made.engine, at: Date.now() };
