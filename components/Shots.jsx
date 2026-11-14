@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { newShot, pickedClip, uid } from '../lib/project';
 import { falImage, falVideo, hfImage, hfVideo, toFrame } from '../lib/engines';
-import { parseScript } from '../lib/script';
+import { dedupe, newOnly, parseScript } from '../lib/script';
 import { Area, Chips, Field } from './ui';
 
 export default function Shots({ p, go }) {
@@ -31,7 +31,7 @@ export default function Shots({ p, go }) {
           const i = d.shots.findIndex((x) => x.id === id);
           if (i < 0) return;
           Object.assign(d.shots[i], { title: got.shots[0].title, prompt: got.shots[0].prompt, motion: got.shots[0].motion, frame: '' });
-          d.shots.splice(i + 1, 0, ...got.shots.slice(1).map(newShot));
+          d.shots.splice(i + 1, 0, ...newOnly(got.shots.slice(1), d.shots).map(newShot));
         });
         setSplitNote('That was a full script, so it was split into ' + got.shots.length + ' shot cards.');
         return;
@@ -189,6 +189,13 @@ export default function Shots({ p, go }) {
   }
 
   const missing = project.shots.filter((s) => !s.clips.length).length;
+  const repeats = project.shots.length - dedupe(project.shots).length;
+
+  function clearAll() {
+    if (confirm !== 'all') return setConfirm('all');
+    update((d) => { d.shots = []; });
+    setConfirm('');
+  }
 
   return (
     <>
@@ -213,6 +220,11 @@ export default function Shots({ p, go }) {
             <button type="button" className="btn sec" onClick={() => update((d) => { d.shots.push(newShot()); })}>Add shot</button>
           </div>
           <p className="note">To save credit, draft the frames first. A frame costs a small fraction of a clip, so fix the picture there, then generate clips only for frames you like.</p>
+          <div className="row">
+            {repeats > 0 && <button type="button" className="btn ghost" onClick={() => update((d) => { d.shots = dedupe(d.shots); })}>Remove {repeats} duplicate shot{repeats > 1 ? 's' : ''}</button>}
+            {project.shots.length > 0 && <button type="button" className="btn ghost" onClick={clearAll}>{confirm === 'all' ? 'Tap again to delete every shot' : 'Clear all shots'}</button>}
+          </div>
+          {repeats > 0 && <p className="err">{repeats} shot{repeats > 1 ? 's are' : ' is'} repeated. Remove the duplicates before generating, or you pay for the same clip twice.</p>}
           {allNote && <p className="err">{allNote}</p>}
           {splitNote && <p className="note">{splitNote}</p>}
         </div>

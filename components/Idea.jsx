@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { newShot } from '../lib/project';
 import { writeShots } from '../lib/engines';
-import { parseScript } from '../lib/script';
+import { newOnly, parseScript } from '../lib/script';
 import { Area, Chips, Field } from './ui';
 
 export default function Idea({ p, go }) {
@@ -29,19 +29,41 @@ export default function Idea({ p, go }) {
     setBusy(false);
   }
 
-  function importScript(runNow) {
-    const got = parseScript(paste);
-    if (!got.shots.length && !got.title && !got.idea) return setPasteNote('No shots found. Number each shot, for example: 1. Wide shot of a street at dusk');
+  // Shared by the script box and by a full script pasted into the idea field.
+  function applyScript(got, runNow) {
+    let added = 0;
     update((d) => {
       ['title', 'idea', 'cast', 'style', 'seconds'].forEach((k) => { if (got[k]) d[k] = got[k]; });
-      got.shots.forEach((s) => d.shots.push(newShot(s)));
+      const fresh = newOnly(got.shots, d.shots);
+      added = fresh.length;
+      fresh.forEach((s) => d.shots.push(newShot(s)));
     });
-    setPaste('');
-    setPasteNote('');
     if (got.shots.length) {
       if (runNow) setAutoRun(true);
       go('shots');
     }
+    return added;
+  }
+
+  function importScript(runNow) {
+    const got = parseScript(paste);
+    if (!got.shots.length && !got.title && !got.idea) return setPasteNote('No shots found. Number each shot, for example: 1. Wide shot of a street at dusk');
+    applyScript(got, runNow);
+    setPaste('');
+    setPasteNote('');
+  }
+
+  // A whole script pasted into the idea field is imported instead of being kept as one long idea.
+  function setIdea(v) {
+    if (v.length > 200) {
+      const got = parseScript(v);
+      if (got.shots.length >= 2) {
+        if (!got.idea) got.idea = project.idea && project.idea.length < 200 ? project.idea : ' ';
+        applyScript(got, false);
+        return;
+      }
+    }
+    set('idea')(v);
   }
 
   function blank() {
@@ -57,7 +79,7 @@ export default function Idea({ p, go }) {
       <p className="lede">Describe it in a few lines. The shot writer turns it into a shot list, then each shot becomes a real clip.</p>
       <div className="card">
         <Field label="Title" value={project.title} onChange={set('title')} placeholder="The last ferry" />
-        <Area label="Idea or script" rows={6} value={project.idea} onChange={set('idea')} placeholder="An old ferryman makes his final crossing at dawn. Halfway over, he finds a child hiding under the bench..." />
+        <Area label="Idea or script" rows={6} value={project.idea} onChange={setIdea} placeholder="An old ferryman makes his final crossing at dawn. Halfway over, he finds a child hiding under the bench..." />
         <Area label="Cast: one line per character, reused word for word in every shot" rows={3} value={project.cast} onChange={set('cast')} placeholder="Ferryman: a thin man in his seventies, white beard, faded blue shirt, straw hat" />
         <Field label="Visual style" value={project.style} onChange={set('style')} />
         <p className="mono">Frame</p>
