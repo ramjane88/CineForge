@@ -7,7 +7,7 @@ import { parseScript } from '../lib/script';
 import { Area, Chips, Field } from './ui';
 
 export default function Idea({ p, go }) {
-  const { project, settings, update } = p;
+  const { project, settings, update, setAutoRun } = p;
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
   const [paste, setPaste] = useState('');
@@ -29,16 +29,19 @@ export default function Idea({ p, go }) {
     setBusy(false);
   }
 
-  function importScript() {
+  function importScript(runNow) {
     const got = parseScript(paste);
     if (!got.shots.length && !got.title && !got.idea) return setPasteNote('No shots found. Number each shot, for example: 1. Wide shot of a street at dusk');
     update((d) => {
-      ['title', 'idea', 'cast', 'style'].forEach((k) => { if (got[k]) d[k] = got[k]; });
+      ['title', 'idea', 'cast', 'style', 'seconds'].forEach((k) => { if (got[k]) d[k] = got[k]; });
       got.shots.forEach((s) => d.shots.push(newShot(s)));
     });
     setPaste('');
     setPasteNote('');
-    if (got.shots.length) go('shots');
+    if (got.shots.length) {
+      if (runNow) setAutoRun(true);
+      go('shots');
+    }
   }
 
   function blank() {
@@ -78,7 +81,8 @@ export default function Idea({ p, go }) {
       <div className="card">
         <Area label="Script" rows={6} value={paste} onChange={setPaste} placeholder={'Title: The Last Lamp\n| 1 | Wide shot of a village street at dusk | slow push in |\n| 2 | Close up of hands shaping clay | the wheel spins |'} />
         <div className="row">
-          <button type="button" className="btn" disabled={!paste.trim()} onClick={importScript}>Import script</button>
+          <button type="button" className="btn" disabled={!paste.trim()} onClick={() => importScript(true)}>Import and generate film</button>
+          <button type="button" className="btn sec" disabled={!paste.trim()} onClick={() => importScript(false)}>Import only</button>
         </div>
         {pasteNote && <p className="err">{pasteNote}</p>}
       </div>

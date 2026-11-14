@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { newShot, pickedClip, uid } from '../lib/project';
 import { falImage, falVideo, hfImage, hfVideo, toFrame } from '../lib/engines';
 import { Area, Chips, Field } from './ui';
@@ -11,6 +11,7 @@ export default function Shots({ p, go }) {
   const [err, setErr] = useState({});
   const [confirm, setConfirm] = useState('');
   const [all, setAll] = useState(false);
+  const [allNote, setAllNote] = useState('');
   const tall = project.aspect === '9:16';
 
   const mark = (id, text) => setBusy((b) => ({ ...b, [id]: text }));
@@ -37,11 +38,16 @@ export default function Shots({ p, go }) {
     return [s.prompt, pr.cast && 'Characters: ' + pr.cast.replace(/\n+/g, '; '), pr.style].filter(Boolean).join('. ');
   }
 
+  // Each maker reports 'ok', 'quota' or 'fail' so a batch run knows when to stop.
   async function makeFrame(id) {
     const s = current(id);
-    if (!s || !s.prompt.trim()) return fail(id, 'Write the shot description first.');
+    if (!s || !s.prompt.trim()) {
+      fail(id, 'Write the shot description first.');
+      return 'fail';
+    }
     fail(id, '');
     mark(id, 'Making frame');
+    let result = 'ok';
     try {
       const st = live().settings;
       const args = { settings: st, prompt: framePrompt(s), aspect: live().project.aspect, onStatus: (t) => mark(id, 'Frame: ' + t) };
@@ -50,8 +56,10 @@ export default function Shots({ p, go }) {
       edit(id, (x) => { x.frame = frame; });
     } catch (e) {
       fail(id, e.message);
+      result = /quota/i.test(e.message) ? 'quota' : 'fail';
     }
     mark(id, '');
+    return result;
   }
 
   async function upload(id, file) {
@@ -67,36 +75,65 @@ export default function Shots({ p, go }) {
 
   async function makeClip(id) {
     let s = current(id);
-    if (!s || !s.prompt.trim()) return fail(id, 'Write the shot description first.');
+    if (!s || !s.prompt.trim()) {
+      fail(id, 'Write the shot description first.');
+      return 'fail';
+    }
     const st = live().settings;
     fail(id, '');
+    if (st.engine !== 'fal' && !s.frame) {
+      const framed = await makeFrame(id);
+      if (framed !== 'ok') return framed;
+      s = current(id);
+      if (!s || !s.frame) return 'fail';
+    }
+    let result = 'ok';
+    mark(id, 'Generating clip');
     try {
-      if (st.engine !== 'fal' && !s.frame) {
-        await makeFrame(id);
-        s = current(id);
-        if (!s || !s.frame) return;
-      }
-      mark(id, 'Generating clip');
       const pr = live().project;
-      const motion = [s.motion, s.frame ? '' : s.prompt, s.frame ? '' : pr.style].filter(Boolean).join('. ');
-      const args = { settings: st, prompt: s.frame ? (s.motion || 'subtle natural motion') + '. ' + s.prompt : motion, frame: s.frame, aspect: pr.aspect, seconds: pr.seconds, onStatus: (t) => mark(id, 'Clip: ' + t) };
+      const prompt = s.frame
+        ? (s.motion || 'subtle natural motion') + '. ' + s.prompt
+        : [s.motion, s.prompt, pr.style].filter(Boolean).join('. ');
+      const args = { settings: st, prompt, frame: s.frame, aspect: pr.aspect, seconds: pr.seconds, onStatus: (t) => mark(id, 'Clip: ' + t) };
       const made = await run(id, hfVideo, falVideo, args);
       const clip = { id: uid(), url: made.url, engine: made.engine, at: Date.now() };
       edit(id, (x) => { x.clips.push(clip); x.pick = clip.id; });
     } catch (e) {
       fail(id, e.message);
+      result = /quota/i.test(e.message) ? 'quota' : 'fail';
     }
     mark(id, '');
+    return result;
   }
 
+  // Works down the list. Stops at the first quota error, since every later shot would hit it too.
   async function makeAll() {
     setAll(true);
+    setAllNote('');
+    let made = 0;
     for (const s of live().project.shots) {
-      if (!current(s.id) || current(s.id).clips.length) continue;
-      await makeClip(s.id);
+      const cur = current(s.id);
+      if (!cur || cur.clips.length) continue;
+      const r = await makeClip(s.id);
+      if (r === 'ok') made += 1;
+      if (r === 'quota') {
+        const left = live().project.shots.filter((x) => !x.clips.length).length;
+        setAllNote('Free quota ran out after ' + made + ' clip' + (made === 1 ? '' : 's') + '. ' + left + ' still to make. They need tomorrow\'s quota, or a fal key in Keys to finish now.');
+        break;
+      }
     }
     setAll(false);
+    const shots = live().project.shots;
+    if (shots.length && shots.every((x) => x.clips.length)) go('film');
   }
+
+  // Set by "Import and generate film" on the Idea tab.
+  useEffect(() => {
+    if (!p.autoRun) return;
+    p.setAutoRun(false);
+    makeAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p.autoRun]);
 
   function move(i, by) {
     update((d) => {
@@ -137,6 +174,7 @@ export default function Shots({ p, go }) {
             <button type="button" className="btn" disabled={all || !missing} onClick={makeAll}>{all ? 'Working through the list...' : missing ? 'Generate ' + missing + ' missing clip' + (missing > 1 ? 's' : '') : 'All shots have clips'}</button>
             <button type="button" className="btn sec" onClick={() => update((d) => { d.shots.push(newShot()); })}>Add shot</button>
           </div>
+          {allNote && <p className="err">{allNote}</p>}
         </div>
       </section>
 
