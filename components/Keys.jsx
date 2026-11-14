@@ -22,7 +22,7 @@ export default function Keys({ p }) {
 
       <div className="card">
         <h3>Paid video engine</h3>
-        <p className="note">fal.ai bills per clip from prepaid credit, with no daily cap. Create a key at <a href="https://fal.ai/dashboard/keys" target="_blank" rel="noopener noreferrer">fal.ai/dashboard/keys</a>.</p>
+        <p className="note">fal.ai bills per clip from prepaid credit, with no daily cap. The default model is Wan 2.2 Turbo, listed at $0.05 per clip at 480p, so a 12 shot film is about $0.60. Create a key at <a href="https://fal.ai/dashboard/keys" target="_blank" rel="noopener noreferrer">fal.ai/dashboard/keys</a>.</p>
         <Field label="fal key" type="password" value={settings.fal} onChange={set('fal')} autoComplete="off" />
         <p className="mono">Resolution</p>
         <Chips options={[['480p', '480p, cheapest'], ['580p', '580p'], ['720p', '720p']]} value={settings.falRes} onChange={(v) => updateSettings((s) => { s.falRes = v; })} />

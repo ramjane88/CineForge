@@ -15,7 +15,7 @@ This branch (`web`) is separate from the Android project on `main`.
 | Job | Free engine | Paid engine |
 | --- | --- | --- |
 | Start frame | FLUX.1 schnell Space on Hugging Face | `fal-ai/flux/schnell` |
-| Clip | Wan 2.2 image to video Space on Hugging Face | Wan 2.2 on fal.ai, text or image to video |
+| Clip | Wan 2.2 image to video Space on Hugging Face | Wan 2.2 Turbo on fal.ai, text or image to video, listed at $0.05 per clip at 480p |
 | Shot list | Groq | Groq |
 
 Keys are pasted in the Keys tab and stay in the browser. Model ids are editable there, because providers rename and retire models. fal lists its Wan 2.2 endpoints for removal on 4 January 2027.
