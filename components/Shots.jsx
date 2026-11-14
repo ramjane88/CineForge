@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { newShot, pickedClip, uid } from '../lib/project';
 import { falImage, falVideo, hfImage, hfVideo, toFrame } from '../lib/engines';
+import { parseScript } from '../lib/script';
 import { Area, Chips, Field } from './ui';
 
 export default function Shots({ p, go }) {
@@ -12,12 +13,32 @@ export default function Shots({ p, go }) {
   const [confirm, setConfirm] = useState('');
   const [all, setAll] = useState(false);
   const [allNote, setAllNote] = useState('');
+  const [splitNote, setSplitNote] = useState('');
   const tall = project.aspect === '9:16';
 
   const mark = (id, text) => setBusy((b) => ({ ...b, [id]: text }));
   const fail = (id, text) => setErr((e) => ({ ...e, [id]: text }));
   const edit = (id, fn) => update((d) => { const s = d.shots.find((x) => x.id === id); if (s) fn(s); });
   const current = (id) => live().project.shots.find((x) => x.id === id);
+
+  // A whole script pasted into one shot box is split into separate shot cards.
+  function setPrompt(id, v) {
+    if (v.length > 200) {
+      const got = parseScript(v);
+      if (got.shots.length >= 2) {
+        update((d) => {
+          ['title', 'idea', 'cast', 'style', 'seconds'].forEach((k) => { if (got[k]) d[k] = got[k]; });
+          const i = d.shots.findIndex((x) => x.id === id);
+          if (i < 0) return;
+          Object.assign(d.shots[i], { title: got.shots[0].title, prompt: got.shots[0].prompt, motion: got.shots[0].motion, frame: '' });
+          d.shots.splice(i + 1, 0, ...got.shots.slice(1).map(newShot));
+        });
+        setSplitNote('That was a full script, so it was split into ' + got.shots.length + ' shot cards.');
+        return;
+      }
+    }
+    edit(id, (x) => { x.prompt = v; });
+  }
 
   // 'auto' tries the free engine first and falls back to fal when it fails and a fal key exists.
   async function run(id, free, paidFn, args) {
@@ -175,6 +196,7 @@ export default function Shots({ p, go }) {
             <button type="button" className="btn sec" onClick={() => update((d) => { d.shots.push(newShot()); })}>Add shot</button>
           </div>
           {allNote && <p className="err">{allNote}</p>}
+          {splitNote && <p className="note">{splitNote}</p>}
         </div>
       </section>
 
@@ -190,7 +212,7 @@ export default function Shots({ p, go }) {
                 <input type="text" aria-label="Shot title" value={s.title} onChange={(e) => edit(s.id, (x) => { x.title = e.target.value; })} />
                 <span className={'pill' + (s.clips.length ? ' good' : '')}>{s.clips.length ? s.clips.length + ' take' + (s.clips.length > 1 ? 's' : '') : 'No clip'}</span>
               </div>
-              <Area label="What we see" value={s.prompt} onChange={(v) => edit(s.id, (x) => { x.prompt = v; })} placeholder="Wide shot of an old ferryman poling a narrow boat across a misty river at dawn" />
+              <Area label="What we see" value={s.prompt} onChange={(v) => setPrompt(s.id, v)} placeholder="Wide shot of an old ferryman poling a narrow boat across a misty river at dawn" />
               <Field label="What moves" value={s.motion} onChange={(v) => edit(s.id, (x) => { x.motion = v; })} placeholder="the boat glides forward, slow push in" />
 
               <div className="frame">
