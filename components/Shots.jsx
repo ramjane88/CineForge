@@ -148,6 +148,22 @@ export default function Shots({ p, go }) {
     if (shots.length && shots.every((x) => x.clips.length)) go('film');
   }
 
+  // Frames cost a fraction of a clip, so drafting every frame first is the cheap way to check a film.
+  async function framesAll() {
+    setAll(true);
+    setAllNote('');
+    for (const s of live().project.shots) {
+      const cur = current(s.id);
+      if (!cur || cur.frame || cur.clips.length) continue;
+      const r = await makeFrame(s.id);
+      if (r === 'quota') {
+        setAllNote('Free quota ran out while making frames. Switch Engine to Paid only to finish them.');
+        break;
+      }
+    }
+    setAll(false);
+  }
+
   // Set by "Import and generate film" on the Idea tab.
   useEffect(() => {
     if (!p.autoRun) return;
@@ -193,8 +209,10 @@ export default function Shots({ p, go }) {
           </p>
           <div className="row">
             <button type="button" className="btn" disabled={all || !missing} onClick={makeAll}>{all ? 'Working through the list...' : missing ? 'Generate ' + missing + ' missing clip' + (missing > 1 ? 's' : '') : 'All shots have clips'}</button>
+            <button type="button" className="btn sec" disabled={all || !project.shots.some((x) => !x.frame && !x.clips.length)} onClick={framesAll}>Draft all frames first</button>
             <button type="button" className="btn sec" onClick={() => update((d) => { d.shots.push(newShot()); })}>Add shot</button>
           </div>
+          <p className="note">To save credit, draft the frames first. A frame costs a small fraction of a clip, so fix the picture there, then generate clips only for frames you like.</p>
           {allNote && <p className="err">{allNote}</p>}
           {splitNote && <p className="note">{splitNote}</p>}
         </div>
