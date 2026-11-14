@@ -33,7 +33,7 @@ export default function Home() {
         <h1>CineForge</h1>
         <div className="right">
           <span className={'pill' + (ready ? ' good' : '')}>{ready} of {p.project.shots.length} clips</span>
-          <span className="pill">{p.settings.engine === 'fal' ? 'fal.ai' : 'Free engine'}</span>
+          <span className="pill">{p.settings.engine === 'fal' ? 'Paid' : p.settings.engine === 'auto' ? 'Free, then paid' : 'Free only'}</span>
         </div>
       </header>
 

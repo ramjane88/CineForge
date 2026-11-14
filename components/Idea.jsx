@@ -3,12 +3,15 @@
 import { useState } from 'react';
 import { newShot } from '../lib/project';
 import { writeShots } from '../lib/engines';
+import { parseScript } from '../lib/script';
 import { Area, Chips, Field } from './ui';
 
 export default function Idea({ p, go }) {
   const { project, settings, update } = p;
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState('');
+  const [paste, setPaste] = useState('');
+  const [pasteNote, setPasteNote] = useState('');
   const set = (k) => (v) => update((d) => { d[k] = v; });
 
   async function breakDown() {
@@ -26,12 +29,25 @@ export default function Idea({ p, go }) {
     setBusy(false);
   }
 
+  function importScript() {
+    const got = parseScript(paste);
+    if (!got.shots.length && !got.title && !got.idea) return setPasteNote('No shots found. Number each shot, for example: 1. Wide shot of a street at dusk');
+    update((d) => {
+      ['title', 'idea', 'cast', 'style'].forEach((k) => { if (got[k]) d[k] = got[k]; });
+      got.shots.forEach((s) => d.shots.push(newShot(s)));
+    });
+    setPaste('');
+    setPasteNote('');
+    if (got.shots.length) go('shots');
+  }
+
   function blank() {
     update((d) => { d.shots.push(newShot()); });
     go('shots');
   }
 
   return (
+    <>
     <section>
       <p className="mono">Step 01 / Idea</p>
       <h2>What is the film?</h2>
@@ -55,5 +71,18 @@ export default function Idea({ p, go }) {
         {!settings.groq && !settings.claude && <p className="note">The shot writer needs a Claude or Groq key. Add one in Keys, or write shots by hand.</p>}
       </div>
     </section>
+
+    <section>
+      <h2>Or paste a finished script</h2>
+      <p className="lede">Paste a whole script, table and all. Title, idea, cast, style and every numbered shot are filled in for you. No key needed.</p>
+      <div className="card">
+        <Area label="Script" rows={6} value={paste} onChange={setPaste} placeholder={'Title: The Last Lamp\n| 1 | Wide shot of a village street at dusk | slow push in |\n| 2 | Close up of hands shaping clay | the wheel spins |'} />
+        <div className="row">
+          <button type="button" className="btn" disabled={!paste.trim()} onClick={importScript}>Import script</button>
+        </div>
+        {pasteNote && <p className="err">{pasteNote}</p>}
+      </div>
+    </section>
+    </>
   );
 }
